@@ -16,7 +16,7 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FSimpleHttpRequestWillRetryDelegate,float ,Sec
 /**
  * 
  */
-UCLASS()
+UCLASS(BlueprintType)
 class SIMPLEHTTPMODULE_API UHTTPRequest : public UObject
 {
 	GENERATED_BODY()
@@ -44,12 +44,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SimpleHTTPModule|Request", meta = (DisplayName = "绑定请求将重试的委托"))
 	void BindRequestWillRetry(FSimpleHttpRequestWillRetryDelegate InDelegate);
 
+	/**
+	* 保存接受的文件
+	* @param SavePath 报错文件路径不能为空。
+	* @param FileName 文件名。可以为空，但是UsingReceivedFileName必须为true。
+	* @param UsingReceivedFileName 使用默认服务器给定的文件名。当为false时则使用FileName变量作为文件名。
+	*/
 	UFUNCTION(BlueprintCallable, Category = "SimpleHTTPModule|Request", meta = (DisplayName = "保存接收的文件"))
 	bool SaveAsFile(FString SavePath,FString FileName,bool UsingReceivedFileName = true);
 
+	UFUNCTION(BlueprintCallable, Category = "SimpleHTTPModule|Request", meta = (DisplayName = "释放请求内存空间"))
+	void FreeRequest();
+
 	TSharedPtr<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = nullptr;
-	TArray<uint8> BinaryContent;
+	//TArray<uint8> BinaryContent;
 private:
+	UPROPERTY()
+	class UHTTPHelperSubsystem* HTTPHelperSubsystem = nullptr;
 	friend class UHTTPHelperSubsystem;
 
 	void BindAllDelegate(const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> InHttpRequest);

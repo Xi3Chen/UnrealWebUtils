@@ -3,6 +3,7 @@
 
 #include "HTTPRequest.h"
 #include "Interfaces/IHttpResponse.h"
+#include "HTTPHelperSubsystem.h"
 
 
 void UHTTPRequest::BindRequestCompleteAsString(FSimpleHttpRequestCompleteAsStringDelegate InDelegate)
@@ -32,12 +33,19 @@ void UHTTPRequest::BindRequestWillRetry(FSimpleHttpRequestWillRetryDelegate InDe
 
 bool UHTTPRequest::SaveAsFile(FString SavePath, FString FileName, bool UsingReceivedFileName)
 {
+	auto SaveFile = [&]()
+		{
+			;
+			SavePath = FPaths::Combine(SavePath, FileName);
+			return FFileHelper::SaveArrayToFile(HttpRequest->GetResponse()->GetContent(), *SavePath);
+		};
 	if (HttpRequest.IsValid() && HttpRequest->GetResponse().IsValid() && EHttpResponseCodes::IsOk(HttpRequest->GetResponse()->GetResponseCode()))
 	{
 		//save uint8 array to file
 		if (UsingReceivedFileName)
 		{
 			TArray<FString> AllHeaders = HttpRequest->GetResponse()->GetAllHeaders();
+			bool bFindedFileName = false;
 			for (auto Header : AllHeaders)
 			{
 				if (Header.StartsWith("Content-Disposition"))
@@ -47,21 +55,42 @@ bool UHTTPRequest::SaveAsFile(FString SavePath, FString FileName, bool UsingRece
 					{
 						FileName = Header.Mid(FileNameStartIndex + 10).Replace(TEXT("\""), TEXT(""));
 						UE_LOG(LogTemp, Log, TEXT("File name: %s will be saved"), *FileName);
+						return SaveFile();
 					}
 					break;
 				}
 			}
-			FileName = FPaths::GetCleanFilename(HttpRequest->GetURL());
+			TArray<FString> UrlParseFileNameArray;
+			HttpRequest->GetURL().ParseIntoArray(UrlParseFileNameArray, TEXT("/"));
+			if (UrlParseFileNameArray.Num() > 0)
+			{
+				FileName = FPaths::GetCleanFilename(UrlParseFileNameArray.Last());
+				return SaveFile();
+			}
+			
 		}
-		SavePath = FPaths::Combine(SavePath, FileName);
-		return FFileHelper::SaveArrayToFile(BinaryContent, *SavePath);
+		return SaveFile();
+		
 	}
 	return false;
 }
 
+void UHTTPRequest::FreeRequest()
+{
+	if (HTTPHelperSubsystem)
+	{
+		HTTPHelperSubsystem->HistoryHttpRequests.Remove(this);
+	}
+#if ENGINE_MAJOR_VERSION>4
+	this->MarkAsGarbage();
+#else
+	this->MarkPendingKill();
+#endif
+}
+
 void UHTTPRequest::BindAllDelegate(const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> InHttpRequest)
 {
-	BinaryContent.Empty();
+	//BinaryContent.Empty();
 	HttpRequest = InHttpRequest;
 	HttpRequest->OnProcessRequestComplete().BindUObject(this, &UHTTPRequest::OnProcessRequestCompleteEvent);
 
@@ -74,7 +103,7 @@ void UHTTPRequest::BindAllDelegate(const TSharedRef<IHttpRequest, ESPMode::Threa
 
 void UHTTPRequest::OnProcessRequestCompleteEvent(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
-	BinaryContent = Response->GetContent();
+	//BinaryContent = Response->GetContent();
 	OnRequestCompleteAsString.ExecuteIfBound(bWasSuccessful, Response->GetContentAsString());
 	OnRequestCompleteAsBinary.ExecuteIfBound(bWasSuccessful, Response->GetContent());
 }

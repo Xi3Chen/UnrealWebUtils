@@ -73,7 +73,7 @@ UHTTPRequest* UHTTPHelperSubsystem::CallHTTP(FString URL, EMethodByte Verb, TMap
 	return CreateHttpRequestObject(HttpRequest);
 }
 
-UHTTPRequest* UHTTPHelperSubsystem::CallHTTPAndLoadFile(FString URL, EMethodByte Verb, TMap<FString, FString> Headers, TMap<FString, FString> Params, FString FilePath, float InTimeoutSecs,bool bAddDefaultHeaders)
+UHTTPRequest* UHTTPHelperSubsystem::CallHTTPAndUploadFile(FString URL, EMethodByte Verb, TMap<FString, FString> Headers, TMap<FString, FString> Params, FString FilePath, float InTimeoutSecs,bool bAddDefaultHeaders)
 {
 	const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = CreateHTTP_Native(URL, Verb, Headers, Params, InTimeoutSecs, bAddDefaultHeaders);
 	HttpRequest->SetContentAsStreamedFile(FilePath);
@@ -174,6 +174,7 @@ UHTTPRequest* UHTTPHelperSubsystem::CreateHttpRequestObject(const TSharedRef<IHt
 		UHTTPRequest* HttpRequestObject = NewObject<UHTTPRequest>();
 		HttpRequestObject->BindAllDelegate(HttpRequest);
 		HistoryHttpRequests.Add(HttpRequestObject);
+		HttpRequestObject->HTTPHelperSubsystem = this;
 		return HttpRequestObject;
 	}
 	return nullptr;
@@ -275,6 +276,46 @@ FString UHTTPHelperSubsystem::MethodByteToString(EMethodByte MethodByte)
 		return "GET";
 		break;
 	}
+}
+
+TMap<FString, FString> UHTTPHelperSubsystem::MakeDefaultContentType(EHttpHelperContentType HttpContentType)
+{
+	switch (HttpContentType)
+	{
+	case EHttpHelperContentType::Text_Xml:
+		return TMap<FString, FString>({ {TEXT("Content-Type"),TEXT("text/xml")} });
+		break;
+	case EHttpHelperContentType::text_html:
+		return TMap<FString, FString>({ {TEXT("Content-Type"),TEXT("text/html")} });
+		break;
+	case EHttpHelperContentType::text_plain:
+		return TMap<FString, FString>({ {TEXT("Content-Type"),TEXT("text/plain")} });
+		break;
+	case EHttpHelperContentType::image_gif:
+		return TMap<FString, FString>({ {TEXT("Content-Type"),TEXT("image/gif")} });
+		break;
+	case EHttpHelperContentType::image_jpeg:
+		return TMap<FString, FString>({ {TEXT("Content-Type"),TEXT("image/jpeg")} });
+		break;
+	case EHttpHelperContentType::image_png:
+		return TMap<FString, FString>({ {TEXT("Content-Type"),TEXT("image/png")} });
+		break;
+	case EHttpHelperContentType::application_xml:
+		return TMap<FString, FString>({ {TEXT("Content-Type"),TEXT("application/xml")} });
+		break;
+	case EHttpHelperContentType::application_json:
+		return TMap<FString, FString>({ {TEXT("Content-Type"),TEXT("application/json")} });
+		break;
+	case EHttpHelperContentType::application_octet_stream:
+		return TMap<FString, FString>({ {TEXT("Content-Type"),TEXT("application/octet-stream")} });
+		break;
+	case EHttpHelperContentType::application_x_www_form_urlencoded:
+		return TMap<FString, FString>({ {TEXT("Content-Type"),TEXT("application/x-www-form-urlencoded")} });
+		break;
+	default:
+		break;
+	}
+	return TMap<FString, FString>();
 }
 
 FString UHTTPHelperSubsystem::ConvertPathToLinuxPath(FString Path)

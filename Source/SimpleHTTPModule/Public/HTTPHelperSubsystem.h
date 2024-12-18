@@ -9,6 +9,21 @@
 #include "HTTPRequest.h"
 #include "HTTPHelperSubsystem.generated.h"
 
+UENUM(BlueprintType)
+enum class EHttpHelperContentType :uint8
+{
+	Text_Xml UMETA(DisplayName="text_html"),
+	text_html UMETA(DisplayName = "text_html"),
+	text_plain UMETA(DisplayName = "text_plain"),
+	image_gif UMETA(DisplayName="image_gif"),
+	image_jpeg UMETA(DisplayName = "image_jpeg"),
+	image_png UMETA(DisplayName = "image_png"),
+	application_xml UMETA(DisplayName = "application_xml"),
+	application_json UMETA(DisplayName = "application_json"),
+	application_octet_stream UMETA(DisplayName="application_octet_stream"),
+	application_x_www_form_urlencoded UMETA(DisplayName = "application_x_www_form_urlencoded"),
+
+};
 
 UENUM(BlueprintType)
 enum class EMethodByte : uint8
@@ -111,8 +126,8 @@ public:
 		FString Content,
 		float InTimeoutSecs = 100,
 		bool bAddDefaultHeaders = true);
-	UFUNCTION(BlueprintCallable,Category = "SimpleHTTP",DisplayName = "开始加载文件并提交HTTP请求")
-	UHTTPRequest * CallHTTPAndLoadFile(
+	UFUNCTION(BlueprintCallable,Category = "SimpleHTTP",DisplayName = "上传文件的HTTP请求")
+	UHTTPRequest* CallHTTPAndUploadFile(
 		FString URL,
 		EMethodByte Verb,
 		TMap<FString, FString> Headers,
@@ -162,8 +177,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "SimpleHTTP")
 	static FString MethodByteToString(EMethodByte MethodByte);
 	
+	UFUNCTION(BlueprintPure, Category = "SimpleHTTP")
+	static TMap<FString, FString> MakeDefaultContentType(EHttpHelperContentType HttpContentType = EHttpHelperContentType::application_json);
+
 	UPROPERTY(BlueprintReadOnly,VisibleAnywhere, Category = "SimpleHTTP")
-	TArray<UHTTPRequest*> HistoryHttpRequests;
+	TSet<UHTTPRequest*> HistoryHttpRequests;
+
+	
 
 	static FString ConvertPathToLinuxPath(FString Path);
 	//计算文件对应的ContentType
